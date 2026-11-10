@@ -1,0 +1,7 @@
+# generated per-instance — never commit real values
+secrets.env
+flags/*.flag
+
+# noise
+.DS_Store
+*.log

@@ -1,0 +1,74 @@
+# ad-lite-lab — single-DC Active Directory lab (LITE.CORP)
+# Base: ghcr.io/stefgo/samba-ad @ sha256:d46275b4... (tag sha-60b1ea6, arm64+amd64)
+# Deviation from upstream: bridge network + explicit port publishing (upstream
+# is network_mode: host). RPC server ports pinned via conf.d/50-rpc-ports.conf.
+# Upstream base image is referenced by digest, not redistributed (see LICENSE/README).
+# Secrets: secrets.env (600, generated) | Flags: flags/ (600, generated)
+
+services:
+  samba-dc:
+    image: ghcr.io/stefgo/samba-ad@sha256:d46275b4109bde56e36fa99f88361e811e3c78f2f1df28115c00693d5aeaccfa
+    container_name: ad-lite-lab-dc
+    hostname: dc01
+    restart: unless-stopped
+    networks:
+      lite:
+        ipv4_address: 172.31.60.10
+    dns:
+      - 172.31.60.10
+    dns_search:
+      - lite.corp
+    ports:
+      # AD minimum set, host:container identical so impacket/netexec hit standard
+      # ports through the gateway (Kali via host.docker.internal).
+      - "53:53/tcp"
+      - "53:53/udp"
+      # PITFALL(2026-11-04): macOS File Sharing 的 smbd+kdc 先占宿主机 445/88,
+      # OrbStack 绑定这两口静默失败,Kali magic IP 打到 Mac 自己(影子应答).
+      # 标准口映射保留(关文件共享后重启容器即恢复),旁路口 1088/1445 为现役入口.
+      - "88:88/tcp"
+      - "88:88/udp"
+      - "1088:88/tcp"
+      - "1088:88/udp"
+      - "135:135/tcp"
+      - "139:139/tcp"
+      - "389:389/tcp"
+      - "445:445/tcp"
+      - "1445:445/tcp"
+      - "464:464/tcp"
+      - "464:464/udp"
+      - "636:636/tcp"
+      - "3268:3268/tcp"
+      # pinned RPC endpoints (conf.d/50-rpc-ports.conf)
+      - "49160-49165:49160-49165/tcp"
+      # dynamic range for task-server mgmt endpoints (must be published too)
+      - "49166-49185:49166-49185/tcp"
+    cap_add:
+      - SYS_ADMIN
+    env_file:
+      - .env
+    stop_grace_period: 30s
+    mem_limit: 1536m
+    cpus: "2.0"
+    volumes:
+      - samba-dc-etc:/etc/samba
+      - samba-dc-lib:/var/lib/samba
+      - ./conf.d:/etc/samba/conf.d
+      - ./tls:/tls:ro
+      - ./letsencrypt:/var/lib/acme
+      - ./sadm-config.yaml:/etc/sadm-client/config.yaml
+      - ./backup:/backup
+
+networks:
+  lite:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.60.0/24
+          gateway: 172.31.60.1
+
+volumes:
+  samba-dc-etc:
+    name: ad-lite-lab-etc
+  samba-dc-lib:
+    name: ad-lite-lab-lib

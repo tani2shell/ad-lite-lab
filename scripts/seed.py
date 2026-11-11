@@ -293,6 +293,19 @@ def main():
                "-U", f"LITE/Administrator%{ENV['ADMIN_PASSWORD']}")
     log("entry ticket rotated for e.jones")
 
+    # Reset completeness: the solution path itself writes state —
+    # WriteDacl->unicodePwd changes svc_gateway's password, and the ADD_SELF
+    # step puts e.jones into Tier-2-Operators. `user create` skips existing
+    # accounts, so both survive a plain reseed. The seed must force-restore
+    # EVERY attribute the solution path writes (verified after a full solve;
+    # samba-tool 4.24 syntax is 'group removemembers', rc=0 even when absent).
+    samba_tool("user", "setpassword", "svc_gateway",
+               f"--newpassword={ENV['SVC_GATEWAY_PASSWORD']}",
+               "-U", f"LITE/Administrator%{ENV['ADMIN_PASSWORD']}")
+    log("svc_gateway password rotated to factory value")
+    samba_tool("group", "removemembers", "Tier-2-Operators", "e.jones")
+    log("e.jones removed from Tier-2-Operators if present")
+
     # --- group + SPNs ----------------------------------------------------
     try:
         samba_tool("group", "create", "Tier-2-Operators",

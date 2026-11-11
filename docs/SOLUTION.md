@@ -84,6 +84,15 @@ seed flags verify at `sha8(local)=037b49ca` / `sha8(proof)=98e5106a`
    (measured on 4.24); the enumeration half still works.
 7. **DCSync surfaces nothing** for confidential attributes on this Samba —
    if your dump is empty, you're exactly where the lab wants you (→ step 5).
+8. **LDAP simple bind is UPN-only on Samba 4.24** — `DOMAIN\user` and the
+   bare `user` fail `49/52e` with *correct* passwords while the same
+   credentials pass over SMB and Kerberos. Do not conclude "account locked"
+   from LDAP alone; retry as `user@LITE.CORP`.
+9. **`unicodePwd` writes demand LDAPS** — plaintext `389` modify fails
+   `WILL_NOT_PERFORM (0000001F / data 5003)`. Use `ldaps://…:636` with
+   `LDAPTLS_REQCERT=never` (self-signed cert). `636`/`464` are published in
+   compose. (Verified live by the n=1 black-box run, which rotated
+   `svc_gateway`'s password over 636 and read the flags as that account.)
 
 ## Dictionary accounting (calibrate your own runs before blaming the target)
 

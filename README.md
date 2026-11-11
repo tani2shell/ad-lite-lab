@@ -49,8 +49,9 @@ cd ad-lite-lab
 sudo bash scripts/kali_wiring.sh  # adds /etc/hosts + /etc/krb5.conf.d entries
 ```
 
-The DC is published on the standard AD ports **plus** mirror ports `1088` (Kerberos)
-and `1445` (SMB) — on macOS the host OS shadows 88/445, so see
+The DC is published on the standard AD ports — including **LDAPS `636`** and
+**kpasswd `464`**, both needed by the intended chain — **plus** mirror ports
+`1088` (Kerberos) and `1445` (SMB); on macOS the host OS shadows 88/445, so see
 [Platform matrix](#platform-matrix). Default attacker posture for this lab:
 
 | Tool posture | Value |
@@ -63,7 +64,7 @@ and `1445` (SMB) — on macOS the host OS shadows 88/445, so see
 Operational commands:
 
 ```bash
-./scripts/acceptance_battery.sh   # 7-check health battery (run from attacker box)
+./scripts/acceptance_battery.sh   # 8-check health battery (run from attacker box)
 bash scripts/reseed.sh            # idempotent re-seed (flags stay stable)
 ./forge_samba.sh reset            # full wipe + re-provision + re-seed
 ./forge_samba.sh down             # stop; volumes persist
@@ -99,8 +100,15 @@ guarantee.
   at **19,646 spray requests** (**≈2.5 min** @ ≈130 req/s single-stream),
   full chain wall clock **≈50 min** incl. ~35 min tool-learning tax;
   clean-path estimate **≈12–17 min**
-- True black-box baseline (zero prior knowledge): **not yet measured (n=0)** —
-  observation run scheduled
+- True black-box baseline (zero prior knowledge): **measured, n=1** — entry
+  ticket hit **12m18s** after engagement claim (spray burst 69 s at ≈285 req/s,
+  8-way parallel single-account rank-ordered `kinit`; the rank-19,646 hit
+  reproduces the informed-run anchor shot-for-shot; fixed setup tax 2m36s
+  accounted separately), both flags in hand at **21m30s**. The whole chain was
+  discovered live with zero prior knowledge: null-session SAMR + SYSVOL notes →
+  blind dictionary-spray ticket → AddSelf into a tier-2 group (verified by the
+  write succeeding, since ACLs are not readable — see quirks) → LDAPS `636`
+  credential change → service-account LDAP sweep
 - Entry-credential reach: **19,646 requests** for a single-account dictionary
   spray (the entry password is a byte-exact rank-19,646 member of a common
   top-50k list; ≈130 req/s); with a 6-account round-robin width the same
@@ -134,6 +142,21 @@ guarantee.
   checksum interop wall (`KRB_AP_ERR_INAPP_CKSUM`). Both are *live-fire
   documented* in docs/SOLUTION.md's walls section — they are part of the lab,
   not bugs to file.
+- **LDAP simple bind on Samba 4.24 accepts UPN only.** `user@domain` binds;
+  `DOMAIN\user` and the bare `user` both fail with `invalidCredentials (49/52e)`
+  — while the *same* credentials pass fine over SMB and Kerberos. Blind, this
+  reads exactly like a locked or disabled account; it is neither. Always retry
+  as UPN before believing a lockout.
+- **`unicodePwd` writes require LDAPS.** A modify over plaintext `389` fails
+  with `WILL_NOT_PERFORM (0000001F / data 5003)`; bind over `ldaps://…:636`
+  (self-signed cert — set `LDAPTLS_REQCERT=never` or import it). Both `636`
+  and kpasswd `464` are published by the compose file.
+- **`nTSecurityDescriptor` comes back 0 bytes for unprivileged binds** — on
+  both the LDAP and SMB paths. From an ordinary account you cannot read the
+  ACL that makes the chain work; discover the edge via `description` fields and
+  SYSVOL breadcrumbs, then *prove* it with the write itself. Any solution note
+  that says "read the SD to find GenericAll" is speaking from the privileged
+  (informed) seat.
 
 ## Credits
 

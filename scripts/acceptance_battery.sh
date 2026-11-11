@@ -40,3 +40,17 @@ echo "===6 SYSVOL notes.txt (SMB via mirror port)==="
 timeout 15 smbclient -p 1445 //$DC/SYSVOL -N -c 'get lite.corp/scripts/notes.txt -' -m SMB2 2>/dev/null | head -4
 echo "===7 SYSVOL via 445 (expect macOS shadow, documented quirk)==="
 timeout 8 smbclient //$DC/SYSVOL -N -c ls -m SMB2 2>&1 | grep -oE 'NT_STATUS[A-Z_]*' | head -1
+echo "===8 LDAPS 636 publish + UPN-only bind (bb1 friction gate 2026-11-11)==="
+# bb1 black-box lesson: Samba 4.24 simple bind accepts UPN only (DOMAIN\user and
+# bare user fail 52e with correct creds), and unicodePwd writes require
+# ldaps://636 (plaintext 389 -> WILL_NOT_PERFORM). This gate proves the 636
+# surface is published and the UPN bind path works — the intended
+# password-rotation route depends on both.
+if LDAPTLS_REQCERT=never ldapsearch -x -H ldaps://$DC -D 'e.jones@lite.corp' -w "$EJ_PW" \
+     -b 'DC=lite,DC=corp' '(sAMAccountName=e.jones)' dn 2>/dev/null | grep -q '^dn: '; then
+  echo "PASS: LDAPS 636 bind OK (UPN) — unicodePwd rotation route alive"
+else
+  echo "FAIL: LDAPS 636 bind failed — password-rotation route dead (check 636 publish / cert / UPN form)"
+fi
+# informational: same creds in NTLM-style down-level form must fail 49/52e (UPN-only quirk)
+LDAPTLS_REQCERT=never ldapwhoami -x -H ldaps://$DC -D 'LITE\e.jones' -w "$EJ_PW" 2>&1 | grep -oE 'invalidCredentials|dn:' | head -1

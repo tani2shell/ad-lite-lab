@@ -44,7 +44,8 @@ cd ad-lite-lab
 sudo bash scripts/kali_wiring.sh  # 写 /etc/hosts 和 /etc/krb5.conf.d
 ```
 
-DC 除 AD 标准端口外，还镜像发布 `1088`（Kerberos）和 `1445`（SMB）——
+DC 除 AD 标准端口（含链路必需的 **LDAPS `636`** 与 kpasswd `464`）外，还镜像发布
+`1088`（Kerberos）和 `1445`（SMB）——
 macOS 上宿主系统会抢先把 88/445 占掉，见[平台矩阵](#平台矩阵)。默认攻击姿态：
 
 | 项目 | 值 |
@@ -57,7 +58,7 @@ macOS 上宿主系统会抢先把 88/445 占掉，见[平台矩阵](#平台矩�
 运维命令：
 
 ```bash
-./scripts/acceptance_battery.sh   # 7 项健康电池（在攻击机上跑）
+./scripts/acceptance_battery.sh   # 8 项健康电池（在攻击机上跑）
 bash scripts/reseed.sh            # 幂等重播种（flag 值不变）
 ./forge_samba.sh reset            # 全清 → 重建 → 重播种
 ./forge_samba.sh down             # 停止（卷保留）
@@ -88,7 +89,12 @@ flag 值同时落在 `flags/local.flag` / `flags/proof.flag` 供计分侧使用�
 - 知情通关（入口向量已由出厂单已知；2/2 旗）：喷射 **19,646 请求** 命中入口
   （**≈2.5 分钟** @ 单流 ≈130 req/s），全链墙钟 **≈50 分钟** 含约 35 分钟工具学习税；
   干净路径估计 **≈12–17 分钟**
-- 真黑盒基线（零先验情报）：**尚未实测（n=0）**——观察局已排期
+- 真黑盒基线（零先验情报）：**已实测（n=1）**——从开火声明起 **12 分 18 秒**
+  命中门票（喷发段 69 秒 @ ≈285 发/s，8 路并行单账号 rank 序 `kinit`；第
+  19,646 发命中与知情局锚点逐发复现；固定准备税 2 分 36 秒单列），**21 分 30
+  秒** 双旗收讫。整条链零先验现场发现：匿名 SAMR + SYSVOL 笔记 → 盲字典喷射
+  拿门票 → AddSelf 进 tier-2 组（ACL 不可读，以写操作成功实证——见怪癖节）→
+  LDAPS `636` 改密 → 服务账号 LDAP sweep
 - 入口凭据可达性：单账号字典喷射 **19,646 请求** 命中（入口口令是主流 top-50k
   字典逐字节精确第 19646 位，≈130 req/s）；6 账号横喷宽度下约 11.8 万请求首发命中
 - 枚举完备性：250 万请求喷射经三轮独立枚举，无遗漏地覆盖全部有效主体集
@@ -116,6 +122,18 @@ flag 值同时落在 `flags/local.flag` / `flags/proof.flag` 供计分侧使用�
   hash；impacket 的 Kerberoast 请求路撞校验和互操作墙
   (`KRB_AP_ERR_INAPP_CKSUM`)。两者在 docs/SOLUTION.md 墙清单里都有实测记录
   ——它们是靶的一部分，不是该提的 bug。
+- **Samba 4.24 的 LDAP simple bind 只认 UPN。** `user@domain` 能绑；
+  `DOMAIN\user` 和裸 `user` 一律报 `invalidCredentials (49/52e)`——而**同一套
+  凭据**走 SMB 和 Kerberos 全过。黑盒视角这长得和锁号/禁号一模一样，其实都
+  不是。采信"锁号"结论之前先改 UPN 重试。
+- **`unicodePwd` 改密强制 LDAPS。** 走 `389` 明文改直接 `WILL_NOT_PERFORM
+  (0000001F / data 5003)`；须 `ldaps://…:636`（自签证书——设
+  `LDAPTLS_REQCERT=never` 或导入证书）。`636` 与 kpasswd `464` 均已在 compose
+  中发布。
+- **非特权 bind 读 `nTSecurityDescriptor` 返回 0 字节**——LDAP 与 SMB 两路同
+  壁。普通账号读不到撑起整条链的那条 ACL；靠 `description` 字段和 SYSVOL 面包
+  屑发现边，再用写操作本身**实证**。题解里若写"读 SD 找到 GenericAll"，那是
+  特权（知情）视角的说法。
 
 ## 致谢
 

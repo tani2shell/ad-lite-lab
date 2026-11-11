@@ -130,7 +130,8 @@ AD から読み出します。
   (Stefano Gosso 作) — 最小構成の Samba AD DC コンテナ。本ラボは digest
   (`sha256:d46275b4…`) で固定し ghcr.io から取得するもので、上流のビルド層の
   再配布は行っていません。上流のライセンス: 執筆時点では未宣言 — 公開コンテナ
-  イメージとして参照し実名で帰属を示すとともに、LICENSE 追加の上流 issue を起票予定。
+  イメージとして参照し実名で帰属を示すとともに、LICENSE 追加を求める上流 issue
+  ([stefgo/samba-ad#1](https://github.com/stefgo/samba-ad/issues/1)) を起票済み。
 - それ以外 (compose・シードロジック・ACL 設計・バッテリー・ドキュメント) は
   本ラボ用に著者が作成し MIT ライセンス (LICENSE 参照)。
 

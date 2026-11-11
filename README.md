@@ -139,8 +139,8 @@ guarantee.
   (`sha256:d46275b4…`) and pulls it from ghcr.io; it does not redistribute the
   upstream build layers. License for the base image: upstream has not declared
   one at time of writing — we reference it as a public container image and
-  attribute it by name, and will file an upstream issue asking the author to
-  add a LICENSE.
+  attribute it by name, and have filed an upstream issue asking the author to
+  add a LICENSE ([stefgo/samba-ad#1](https://github.com/stefgo/samba-ad/issues/1)).
 - Everything else in this repo (compose, seed logic, ACL design, battery
   scripts, docs) is authored for this lab and offered under MIT (see LICENSE).
 

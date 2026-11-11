@@ -120,8 +120,8 @@ flag 值同时落在 `flags/local.flag` / `flags/proof.flag` 供计分侧使用�
 - 基础镜像：[`stefgo/samba-ad`](https://github.com/stefgo/samba-ad)，作者
   Stefano Gosso——极简 Samba AD DC 容器。本靶按 digest 钉版
   （`sha256:d46275b4…`）从 ghcr.io 拉取，不再分发上游构建层。基础镜像许可：
-  撰写时上游未声明 LICENSE——我们按公共容器镜像引用并实名署名，并将向上游
-  提 issue 请求补 LICENSE。
+  撰写时上游未声明 LICENSE——我们按公共容器镜像引用并实名署名，且已向上游
+  提 issue 请求补 LICENSE（[stefgo/samba-ad#1](https://github.com/stefgo/samba-ad/issues/1)）。
 - 本仓库其余内容（compose、播种逻辑、ACL 设计、电池脚本、文档）为本靶原创，
   MIT 授权（见 LICENSE）。
 

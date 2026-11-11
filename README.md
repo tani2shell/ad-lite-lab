@@ -95,14 +95,17 @@ solve faster or slower; treat these as one calibrated data point, not a
 guarantee.
 
 - Intended solve band (informed agent): **20–40 min**
-- Black-box blind solve (zero prior knowledge, fresh attacker): **2/2 flags**,
-  wall clock **≈50 min** — blind dictionary spray entry → ACL escalation
-  chain → flags read via the custom schema attribute (one live-fire run)
-- Entry-credential reach: **19,646 requests** for a single-account blind
+- Informed solve (entry vector known from factory notes; 2/2 flags): entry hit
+  at **19,646 spray requests** (**≈2.5 min** @ ≈130 req/s single-stream),
+  full chain wall clock **≈50 min** incl. ~35 min tool-learning tax;
+  clean-path estimate **≈12–17 min**
+- True black-box baseline (zero prior knowledge): **not yet measured (n=0)** —
+  observation run scheduled
+- Entry-credential reach: **19,646 requests** for a single-account dictionary
   spray (the entry password is a byte-exact rank-19,646 member of a common
   top-50k list; ≈130 req/s); with a 6-account round-robin width the same
   credential was first reached at ≈118k requests
-- Enumeration completeness: a 2.5M-request blind run enumerated the full valid
+- Enumeration completeness: a 2.5M-request spray run enumerated the full valid
   principal set with no misses after three independent enumeration waves
 
 ## Platform matrix
